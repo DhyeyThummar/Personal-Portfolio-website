@@ -607,8 +607,8 @@ const App = () => {
         </div> */}
         <div className="flex justify-center gap-8 items-center">
           <a href="#" className="p-3 bg-gray-500/10 rounded-full hover:bg-blue-500 hover:text-white transition-all"><Github size={20} /></a>
-          <a href="#" className="p-3 bg-gray-500/10 rounded-full hover:bg-blue-600 hover:text-white transition-all"><Linkedin size={20} /></a>
-          <a href="#" className="p-3 bg-gray-500/10 rounded-full hover:bg-blue-400 hover:text-white transition-all"><Instagram size={20} /></a>
+          <a href="https://www.linkedin.com/in/dhyey-thummar-41b978286?utm_source=share_via&utm_content=profile&utm_medium=member_android" className="p-3 bg-gray-500/10 rounded-full hover:bg-blue-600 hover:text-white transition-all"><Linkedin size={20} /></a>
+          <a href="# className="p-3 bg-gray-500/10 rounded-full hover:bg-blue-400 hover:text-white transition-all"><Instagram size={20} /></a>
         </div>
         <div className="mt-8 text-[9px] font-black uppercase tracking-widest opacity-80 italic">© 2026 crafted with ❤️ & ☕️ by Dhyey patel </div>
       </footer>
