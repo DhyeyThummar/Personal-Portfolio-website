@@ -936,7 +936,7 @@ const App = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.28, ease: 'easeOut' }}
-            className="dock-overlay fixed inset-0 z-[90] p-3 md:p-7"
+            className="dock-overlay fixed inset-0 z-[90] p-2 sm:p-3 md:p-7"
             onClick={closeProjectExpand}
           >
             {(() => {
@@ -964,7 +964,7 @@ const App = () => {
               layoutId={`project-card-${idx}`}
               layout
               transition={{ layout: { duration: 0.58, ease: [0.16, 1, 0.3, 1] }, opacity: { duration: 0.25 } }}
-              className={`${toneClass} mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border p-6 md:h-[calc(100vh-3.5rem)]`}
+              className={`${toneClass} mx-auto flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border p-4 md:h-[calc(100vh-3.5rem)] md:p-6`}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-current/20 bg-inherit/95 pb-4 backdrop-blur-xl">
@@ -982,7 +982,10 @@ const App = () => {
                 </button>
               </div>
 
-              <div className="mt-4 overflow-y-auto pr-1">
+              <div
+                className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1"
+                style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom))' }}
+              >
                 <p className="mb-5 text-sm leading-relaxed opacity-90">{project.summary}</p>
 
                 <div className="grid gap-3 md:grid-cols-2">
