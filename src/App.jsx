@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, LayoutGroup, motion as Motion } from 'motion/react';
 import {
   ArrowLeft,
   ArrowRight,
   ArrowUpRight,
-  BookOpen,
   Briefcase,
   CheckCircle,
   ChevronRight,
@@ -24,12 +23,10 @@ import {
 const App = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [projectModalOpen, setProjectModalOpen] = useState(false);
-  const [activeProject, setActiveProject] = useState(0);
-  const [blogPageOpen, setBlogPageOpen] = useState(false);
-  const [activeBlog, setActiveBlog] = useState(0);
+  const [expandedProject, setExpandedProject] = useState(null);
   const [formStatus, setFormStatus] = useState('idle');
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [pageReady, setPageReady] = useState(false);
 
   const nav = useMemo(
     () => [
@@ -38,7 +35,6 @@ const App = () => {
       { id: 'skills', label: 'Skills & Tools' },
       { id: 'education-experience', label: 'Journey' },
       { id: 'certifications', label: 'Certifications' },
-      { id: 'blogs', label: 'Blogs' },
       { id: 'contact', label: 'Contact' },
     ],
     []
@@ -256,94 +252,12 @@ const App = () => {
     },
   ];
 
-  const blogs = [
-    {
-      title: 'Designing Scalable MERN Folder Structures',
-      category: 'Architecture',
-      read: '7 min read',
-      excerpt:
-        'Practical patterns for organizing React, Node, and database layers to keep teams fast as features grow.',
-    },
-    {
-      title: 'From UI Components to Product Systems',
-      category: 'Frontend',
-      read: '6 min read',
-      excerpt:
-        'How to move from isolated component thinking to reusable design systems with predictable behavior.',
-    },
-    {
-      title: 'API Contracts That Prevent Rework',
-      category: 'Backend',
-      read: '8 min read',
-      excerpt:
-        'Building stable request/response contracts and validation layers that reduce frontend-backend friction.',
-    },
-    {
-      title: 'MongoDB Query Patterns for Real Apps',
-      category: 'Database',
-      read: '9 min read',
-      excerpt:
-        'Indexes, aggregation habits, and query strategies that improve performance in production-like datasets.',
-    },
-    {
-      title: 'Authentication UX Beyond Login Screens',
-      category: 'Security + UX',
-      read: '5 min read',
-      excerpt:
-        'Designing auth flows with clear state handling, secure session logic, and better user confidence.',
-    },
-    {
-      title: 'Shipping Full Stack Projects Faster',
-      category: 'Workflow',
-      read: '6 min read',
-      excerpt:
-        'A practical workflow using Git, branch discipline, environment strategy, and deploy checklists.',
-    },
-  ];
-
-  const getBlogContent = (blog) => {
-    const library = {
-      'Designing Scalable MERN Folder Structures': [
-        'A scalable MERN structure starts by separating concerns into clear feature slices and shared system modules. Keep route-level orchestration independent from reusable UI primitives and business logic utilities.',
-        'On the backend, use a layered flow route to controller to service to repository. This avoids coupling request lifecycle code with product logic and makes each layer easier to test and refactor.',
-        'Model MongoDB data for read patterns first. Add indexes for high-frequency flows like search, listing, and filters, then refine projection strategy to keep payloads minimal and responsive.',
-      ],
-      'From UI Components to Product Systems': [
-        'Product systems are not just components; they are behavior contracts. Define variants, spacing rhythm, typography hierarchy, and interaction states as a cohesive system.',
-        'When teams compose interfaces from shared patterns, they move faster while preserving visual and behavioral consistency across multiple feature releases.',
-        'Motion should communicate hierarchy changes and interaction outcomes, not act as decoration. This improves clarity and perceived quality at the same time.',
-      ],
-      'API Contracts That Prevent Rework': [
-        'Stable API contracts reduce frontend-backend rework. Define request validation and response shapes early, and document failure modes as first-class contract elements.',
-        'Use schema validation at boundary points to prevent silent drift and keep integration predictable even as features evolve.',
-        'Version thoughtfully. Additive changes are safer than breaking changes, and migration windows help teams ship without blocking each other.',
-      ],
-      'MongoDB Query Patterns for Real Apps': [
-        'Production MongoDB performance depends on query discipline. Track the most frequent read paths and tune indexes for those first, rather than optimizing theoretical cases.',
-        'Return only fields the UI requires. Smaller payloads improve API responsiveness and make mobile experiences noticeably smoother.',
-        'Aggregation pipelines are powerful, but repeated heavy transforms should eventually move to precomputed summaries when usage scales.',
-      ],
-      'Authentication UX Beyond Login Screens': [
-        'Users feel security through flow clarity. Show explicit loading, session-expired, authenticated, and denied states so users never feel uncertain.',
-        'Secure session handling and token strategy must pair with transparent recovery paths for password reset, re-auth, and account lock edge cases.',
-        'Strong auth UX lowers abandonment and support load because users can complete recovery without confusion.',
-      ],
-      'Shipping Full Stack Projects Faster': [
-        'Speed is a systems outcome. Use small PRs, branch discipline, and release checklists to reduce merge conflicts and integration surprises.',
-        'Keep local, staging, and production behavior aligned so deployment confidence stays high and late-stage defects stay low.',
-        'Automation for build checks, linting, and smoke validation helps teams ship frequently while maintaining product reliability.',
-      ],
-    };
-
-    return (
-      library[blog.title] ?? [
-        'This article explores practical engineering choices for modern full stack development workflows.',
-        'It focuses on architecture, maintainability, and shipping product improvements with predictable quality.',
-      ]
-    );
-  };
-
   const [certIndex, setCertIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setPageReady(true), 550);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -360,12 +274,12 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const lock = mobileMenuOpen || projectModalOpen || blogPageOpen;
+    const lock = mobileMenuOpen || expandedProject !== null;
     document.body.style.overflow = lock ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [mobileMenuOpen, projectModalOpen, blogPageOpen]);
+  }, [mobileMenuOpen, expandedProject]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -379,14 +293,12 @@ const App = () => {
     setMobileMenuOpen(false);
   };
 
-  const openProjectModal = (idx) => {
-    setActiveProject(idx);
-    setProjectModalOpen(true);
+  const openProjectExpand = (idx) => {
+    setExpandedProject(idx);
   };
 
-  const openBlogPage = (idx) => {
-    setActiveBlog(idx);
-    setBlogPageOpen(true);
+  const closeProjectExpand = () => {
+    setExpandedProject(null);
   };
 
   const handleContactSubmit = async (e) => {
@@ -411,7 +323,7 @@ const App = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neo-bg text-neo-black selection:bg-neo-green selection:text-neo-black">
+    <div className="min-h-screen overflow-x-hidden bg-neo-bg text-neo-black selection:bg-neo-green selection:text-neo-black">
       <nav className="fixed left-1/2 top-6 z-50 w-[94%] max-w-6xl -translate-x-1/2">
         <div className="dock-glass rounded-2xl px-5 py-4 md:px-8 md:py-5">
           <div className="flex items-center justify-between">
@@ -452,21 +364,30 @@ const App = () => {
 
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
             className="dock-overlay fixed inset-0 z-[70] md:hidden"
             onClick={() => setMobileMenuOpen(false)}
           >
-            <motion.div
-              initial={{ opacity: 0, y: -16, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.98 }}
-              transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-              className="dock-glass absolute right-3 top-3 w-[78vw] max-w-xs rounded-2xl p-5"
+            <Motion.div
+              initial={{ opacity: 0, y: -26, scale: 0.56, rotate: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1, rotate: 0 }}
+              exit={{ opacity: 0, y: -18, scale: 0.64, rotate: 0.5 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 24, mass: 0.7 }}
+              className="dock-glass absolute left-1/2 top-20 w-[88vw] max-w-[340px] -translate-x-1/2 rounded-3xl p-5"
+              style={{ transformOrigin: 'top center' }}
               onClick={(e) => e.stopPropagation()}
             >
+              <Motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ delay: 0.08, duration: 0.2 }}
+                className="pointer-events-none absolute -top-2 left-1/2 h-6 w-6 -translate-x-1/2 rounded-full border border-black/20 bg-white/80"
+              />
               <div className="mb-5 flex items-center justify-between">
                 <p className="text-sm font-bold uppercase tracking-widest text-black/65">Quick Links</p>
                 <button onClick={() => setMobileMenuOpen(false)} className="grid h-9 w-9 place-items-center rounded-lg border border-black/20">
@@ -485,13 +406,94 @@ const App = () => {
                   </button>
                 ))}
               </div>
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 
-      <main className="mx-auto max-w-6xl px-4 pb-12 pt-36 md:px-8 md:pt-40">
-        <motion.section
+      <AnimatePresence>
+        {!pageReady && (
+          <Motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.48 }}
+            className="fixed inset-0 z-[85] grid place-items-center overflow-hidden bg-white"
+          >
+            <Motion.div
+              animate={{ opacity: [0.2, 0.45, 0.2], scale: [1, 1.06, 1] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut' }}
+              className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(185,255,102,0.28),transparent_42%),radial-gradient(circle_at_80%_20%,rgba(25,26,35,0.14),transparent_38%),radial-gradient(circle_at_50%_80%,rgba(185,255,102,0.2),transparent_44%)]"
+            />
+
+            {[0, 1, 2, 3].map((i) => (
+              <Motion.div
+                key={`loader-orbit-${i}`}
+                animate={{
+                  rotate: [0, i % 2 === 0 ? 360 : -360],
+                  scale: [1, 1.05, 1],
+                }}
+                transition={{
+                  rotate: { duration: 4.8 - i * 0.6, repeat: Infinity, ease: 'linear' },
+                  scale: { duration: 2.2 + i * 0.2, repeat: Infinity, ease: 'easeInOut' },
+                }}
+                className="absolute h-[220px] w-[220px] rounded-full border border-black/10"
+                style={{
+                  width: `${220 - i * 34}px`,
+                  height: `${220 - i * 34}px`,
+                  borderTopColor: i % 2 === 0 ? 'rgba(25,26,35,0.7)' : 'rgba(185,255,102,0.95)',
+                  borderBottomColor: i % 2 === 0 ? 'rgba(185,255,102,0.9)' : 'rgba(25,26,35,0.45)',
+                }}
+              />
+            ))}
+
+            <div className="relative flex flex-col items-center">
+              <Motion.div
+                animate={{ y: [0, -7, 0], scale: [0.95, 1.03, 0.95] }}
+                transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative z-10 rounded-2xl border border-neo-black bg-neo-green px-7 py-3 text-sm font-bold shadow-[0_8px_26px_rgba(0,0,0,0.22)]"
+              >
+                Dhyey Portfolio
+              </Motion.div>
+
+              <Motion.p
+                animate={{ opacity: [0.45, 1, 0.45], letterSpacing: ['0.18em', '0.28em', '0.18em'] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                className="mt-4 text-[11px] font-semibold uppercase text-black/60"
+              >
+                Loading Experience
+              </Motion.p>
+
+              <Motion.div
+                initial={{ width: 0 }}
+                animate={{ width: 220 }}
+                transition={{ duration: 1.35, repeat: Infinity, repeatType: 'reverse', ease: [0.4, 0, 0.2, 1] }}
+                className="mt-5 h-1.5 rounded-full bg-neo-black/80"
+              />
+
+              <div className="mt-4 flex items-center gap-2">
+                {[0, 1, 2].map((i) => (
+                  <Motion.span
+                    key={`loader-dot-${i}`}
+                    animate={{ y: [0, -6, 0], opacity: [0.35, 1, 0.35] }}
+                    transition={{ duration: 0.8, delay: i * 0.15, repeat: Infinity, ease: 'easeInOut' }}
+                    className="h-2 w-2 rounded-full bg-black/70"
+                  />
+                ))}
+              </div>
+            </div>
+          </Motion.div>
+        )}
+      </AnimatePresence>
+
+      <LayoutGroup id="project-expand-group">
+      <Motion.main
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: pageReady ? 1 : 0, y: pageReady ? 0 : 10 }}
+        transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+        className="mx-auto max-w-6xl px-4 pb-12 pt-36 md:px-8 md:pt-40"
+      >
+        <Motion.section
           id="home"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -522,7 +524,7 @@ const App = () => {
               </div>
             </div>
 
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, scale: 0.92 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
@@ -550,11 +552,11 @@ const App = () => {
                   <p className="text-[10px] uppercase tracking-widest text-black/60">Core Stack</p>
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           </div>
-        </motion.section>
+        </Motion.section>
 
-        <motion.section
+        <Motion.section
           id="projects"
           initial={{ opacity: 0, y: 26 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -564,7 +566,7 @@ const App = () => {
         >
           <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <h2 className="inline-block w-fit rounded-md bg-neo-green px-3 py-1 text-3xl font-bold md:text-4xl">Project Showcase</h2>
-            <p className="max-w-xl text-black/70">Desktop uses diagonal color flow and mobile alternates one-by-one, all with equal card sizing.</p>
+            <p className="max-w-xl text-black/70">Cards open in-place with complete project details while keeping the same visual style.</p>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2">
@@ -605,16 +607,17 @@ const App = () => {
               }`;
 
               return (
-                <motion.button
+                <Motion.article
                   key={project.title}
+                  layoutId={`project-card-${idx}`}
+                  layout
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: idx * 0.08, duration: 0.4 }}
                   whileHover={{ y: -10, scale: 1.015 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => openProjectModal(idx)}
-                  className={`${toneClass} dock-project-card interactive-card group flex h-full min-h-[300px] flex-col rounded-[2rem] border p-6 text-left`}
+                  onClick={() => openProjectExpand(idx)}
+                  className={`${toneClass} ${expandedProject === idx ? 'pointer-events-none opacity-0' : ''} dock-project-card interactive-card group flex h-full min-h-[300px] cursor-pointer flex-col rounded-[2rem] border p-6 text-left`}
                 >
                   <div className="mb-3 flex items-start justify-between gap-4">
                     <p className={`inline-block rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${tagClass}`}>
@@ -628,18 +631,18 @@ const App = () => {
                   <p className={`${summaryClass} mb-3 text-sm leading-relaxed`}>{project.summary}</p>
                   <div className="mb-4 grid gap-1 text-xs">
                     <p className={detailLineClass}>Depth: architecture, modules, challenges, impact</p>
-                    <p className={detailLineClass}>Includes full implementation reasoning</p>
+                    <p className={detailLineClass}>Tap to open full implementation details</p>
                   </div>
-                  <span className={`mt-auto inline-flex items-center gap-2 text-xs font-semibold ${linkClass}`}>
+                  <span className={`mt-auto inline-flex items-center gap-2 pt-4 text-xs font-semibold ${linkClass}`}>
                     Open project details <ArrowUpRight size={14} />
                   </span>
-                </motion.button>
+                </Motion.article>
               );
             })}
           </div>
-        </motion.section>
+        </Motion.section>
 
-        <motion.section
+        <Motion.section
           id="skills"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -659,12 +662,12 @@ const App = () => {
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {skills.map((item) => (
-                  <motion.div key={item.name} whileHover={{ y: -6, rotate: -0.8, scale: 1.02 }} whileTap={{ scale: 0.96 }} className={`${item.tone} interactive-card rounded-2xl border p-3`}>
+                  <Motion.div key={item.name} whileHover={{ y: -6, rotate: -0.8, scale: 1.02 }} whileTap={{ scale: 0.96 }} className={`${item.tone} interactive-card rounded-2xl border p-3`}>
                     <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white/70">
                       <img src={item.logo} alt={item.name} className="h-6 w-6 object-contain" loading="lazy" />
                     </div>
                     <p className="text-xs font-semibold">{item.name}</p>
-                  </motion.div>
+                  </Motion.div>
                 ))}
               </div>
             </article>
@@ -675,19 +678,19 @@ const App = () => {
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 {tools.map((item) => (
-                  <motion.div key={item.name} whileHover={{ y: -6, rotate: 0.8, scale: 1.02 }} whileTap={{ scale: 0.96 }} className={`${item.tone} interactive-card rounded-2xl border p-3`}>
+                  <Motion.div key={item.name} whileHover={{ y: -6, rotate: 0.8, scale: 1.02 }} whileTap={{ scale: 0.96 }} className={`${item.tone} interactive-card rounded-2xl border p-3`}>
                     <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-xl bg-white/70">
                       <img src={item.logo} alt={item.name} className="h-6 w-6 object-contain" loading="lazy" />
                     </div>
                     <p className="text-xs font-semibold">{item.name}</p>
-                  </motion.div>
+                  </Motion.div>
                 ))}
               </div>
             </article>
           </div>
-        </motion.section>
+        </Motion.section>
 
-        <motion.section
+        <Motion.section
           id="education-experience"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -705,7 +708,7 @@ const App = () => {
               <h3 className="mb-5 inline-flex items-center gap-2 text-2xl font-bold"><GraduationCap size={22} /> Education</h3>
               <div className="space-y-4">
                 {education.map((item, idx) => (
-                  <motion.div
+                  <Motion.div
                     key={item.title}
                     initial={{ opacity: 0, x: -12 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -722,7 +725,7 @@ const App = () => {
                         <li key={p}>- {p}</li>
                       ))}
                     </ul>
-                  </motion.div>
+                  </Motion.div>
                 ))}
               </div>
             </article>
@@ -731,7 +734,7 @@ const App = () => {
               <h3 className="mb-5 inline-flex items-center gap-2 text-2xl font-bold"><Briefcase size={22} /> Experience</h3>
               <div className="space-y-4">
                 {experiences.map((item, idx) => (
-                  <motion.div
+                  <Motion.div
                     key={item.title}
                     initial={{ opacity: 0, x: 12 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -748,14 +751,14 @@ const App = () => {
                         <li key={p}>- {p}</li>
                       ))}
                     </ul>
-                  </motion.div>
+                  </Motion.div>
                 ))}
               </div>
             </article>
           </div>
-        </motion.section>
+        </Motion.section>
 
-        <motion.section
+        <Motion.section
           id="certifications"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -765,96 +768,87 @@ const App = () => {
         >
           <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <h2 className="inline-block w-fit rounded-md bg-neo-green px-3 py-1 text-3xl font-bold md:text-4xl">Certifications & Achievements</h2>
-            <p className="max-w-xl text-black/70">Interactive certificate showcase with image cards.</p>
+            <p className="max-w-xl text-black/70">Spotlight panel with animated milestone cards for a cleaner and richer format.</p>
           </div>
 
-          <div className="dock-glass rounded-[2rem] p-4 md:p-6">
-            <div className="mb-4 flex items-center justify-between">
-              <button
-                onClick={() => setCertIndex((p) => (p - 1 + certsAndAchievements.length) % certsAndAchievements.length)}
-                className="grid h-10 w-10 place-items-center rounded-full border border-black/20 bg-white"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <button
-                onClick={() => setCertIndex((p) => (p + 1) % certsAndAchievements.length)}
-                className="grid h-10 w-10 place-items-center rounded-full border border-black/20 bg-white"
-              >
-                <ArrowRight size={18} />
-              </button>
+          <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr]">
+            <div className="dock-glass rounded-[2rem] p-4 md:p-6">
+              <div className="mb-4 flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-black/55">Milestone Spotlight</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCertIndex((p) => (p - 1 + certsAndAchievements.length) % certsAndAchievements.length)}
+                    className="grid h-10 w-10 place-items-center rounded-full border border-black/20 bg-white"
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <button
+                    onClick={() => setCertIndex((p) => (p + 1) % certsAndAchievements.length)}
+                    className="grid h-10 w-10 place-items-center rounded-full border border-black/20 bg-white"
+                  >
+                    <ArrowRight size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait">
+                <Motion.article
+                  key={certIndex}
+                  initial={{ opacity: 0, y: 18, scale: 0.985 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -14, scale: 0.985 }}
+                  transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                  className="interactive-card grid gap-5 rounded-3xl border border-black/15 bg-white/80 p-4 md:grid-cols-[1.1fr_1fr] md:p-5"
+                >
+                  <img
+                    src={certsAndAchievements[certIndex].image}
+                    alt={certsAndAchievements[certIndex].title}
+                    className="h-64 w-full rounded-2xl object-cover md:h-[280px]"
+                  />
+                  <div className="flex flex-col justify-between">
+                    <div>
+                      <p className="mb-2 inline-block rounded-md bg-neo-green px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
+                        {certsAndAchievements[certIndex].type}
+                      </p>
+                      <h3 className="text-2xl font-bold md:text-3xl">{certsAndAchievements[certIndex].title}</h3>
+                      <p className="mt-2 text-sm font-semibold text-black/65">{certsAndAchievements[certIndex].subtitle}</p>
+                    </div>
+                    <div className="mt-6 inline-flex w-fit items-center gap-2 rounded-full border border-black/15 bg-white px-3 py-2 text-xs font-semibold text-black/70">
+                      <Trophy size={14} /> Highlighted Milestone
+                    </div>
+                  </div>
+                </Motion.article>
+              </AnimatePresence>
             </div>
 
-            <AnimatePresence mode="wait">
-              <motion.article
-                key={certIndex}
-                initial={{ opacity: 0, x: 32 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -32 }}
-                transition={{ duration: 0.35 }}
-                whileHover={{ y: -4, scale: 1.005 }}
-                className="interactive-card grid gap-5 rounded-3xl border border-black/15 bg-white/80 p-4 md:grid-cols-[1.1fr_1fr] md:p-5"
-              >
-                <img
-                  src={certsAndAchievements[certIndex].image}
-                  alt={certsAndAchievements[certIndex].title}
-                  className="h-64 w-full rounded-2xl object-cover md:h-[280px]"
-                />
-                <div className="flex flex-col justify-between">
-                  <div>
-                    <p className="mb-2 inline-block rounded-md bg-neo-green px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
-                      {certsAndAchievements[certIndex].type}
-                    </p>
-                    <h3 className="text-2xl font-bold md:text-3xl">{certsAndAchievements[certIndex].title}</h3>
-                    <p className="mt-2 text-sm font-semibold text-black/65">{certsAndAchievements[certIndex].subtitle}</p>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+              {certsAndAchievements.map((item, idx) => (
+                <Motion.button
+                  key={item.title}
+                  initial={{ opacity: 0, x: 14 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.06 }}
+                  whileHover={{ y: -5, scale: 1.01 }}
+                  whileTap={{ scale: 0.985 }}
+                  onClick={() => setCertIndex(idx)}
+                  className={`dock-glass interactive-card overflow-hidden rounded-3xl border p-0 text-left ${certIndex === idx ? 'border-neo-black/55 ring-2 ring-neo-green/60' : 'border-black/10'}`}
+                >
+                  <div className="grid grid-cols-[96px_1fr] items-center">
+                    <img src={item.image} alt={item.title} className="h-full min-h-[96px] w-full object-cover" />
+                    <div className="p-3">
+                      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-black/55">{item.type}</p>
+                      <h3 className="text-sm font-bold leading-tight">{item.title}</h3>
+                      <p className="mt-1 text-xs font-semibold text-black/60">{item.subtitle}</p>
+                    </div>
                   </div>
-                  <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-black/70">
-                    <Trophy size={16} /> Highlighted Milestone
-                  </div>
-                </div>
-              </motion.article>
-            </AnimatePresence>
+                </Motion.button>
+              ))}
+            </div>
           </div>
-        </motion.section>
+        </Motion.section>
 
-        <motion.section
-          id="blogs"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.65 }}
-          className="py-16"
-        >
-          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <h2 className="inline-block w-fit rounded-md bg-neo-green px-3 py-1 text-3xl font-bold md:text-4xl">Blogs</h2>
-            <p className="max-w-xl text-black/70">Click any blog to open a full individual reading page.</p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {blogs.map((blog, idx) => (
-              <motion.button
-                key={blog.title}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.06 }}
-                whileHover={{ y: -10, scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => openBlogPage(idx)}
-                className="dock-glass interactive-card rounded-3xl p-5 text-left"
-              >
-                <p className="mb-2 inline-block rounded-md bg-neo-green px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-black">{blog.category}</p>
-                <h3 className="text-2xl font-bold leading-tight">{blog.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-black/75">{blog.excerpt}</p>
-                <div className="mt-5 flex items-center justify-between text-xs font-semibold text-black/60">
-                  <span className="inline-flex items-center gap-1"><BookOpen size={13} /> {blog.read}</span>
-                  <span className="inline-flex items-center gap-1">Open page <ArrowUpRight size={13} /></span>
-                </div>
-              </motion.button>
-            ))}
-          </div>
-        </motion.section>
-
-        <motion.section
+        <Motion.section
           id="contact"
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -915,8 +909,8 @@ const App = () => {
               </button>
             </form>
           </div>
-        </motion.section>
-      </main>
+        </Motion.section>
+      </Motion.main>
 
       <footer className="mx-auto mt-10 max-w-6xl px-4 pb-10 md:px-8">
         <div className="rounded-[2rem] bg-neo-black px-6 py-10 text-white md:px-10">
@@ -936,167 +930,124 @@ const App = () => {
       </footer>
 
       <AnimatePresence>
-        {projectModalOpen && (
-          <motion.div
+        {expandedProject !== null && (
+          <Motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="dock-overlay fixed inset-0 z-[90] p-3 md:p-8"
-            onClick={() => setProjectModalOpen(false)}
+            transition={{ duration: 0.28, ease: 'easeOut' }}
+            className="dock-overlay fixed inset-0 z-[90] p-3 md:p-7"
+            onClick={closeProjectExpand}
           >
-            <motion.article
-              initial={{ opacity: 0, y: 30, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
-              className="dock-glass mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-3xl"
+            {(() => {
+              const idx = expandedProject;
+              const project = projects[idx];
+              const mobileDark = idx % 2 === 1;
+              const desktopDark = (Math.floor(idx / 2) + (idx % 2)) % 2 === 1;
+
+              const toneClass = `${
+                mobileDark
+                  ? 'bg-neo-black text-white border-white/20'
+                  : 'bg-neo-green text-neo-black border-black/20'
+              } ${
+                desktopDark
+                  ? 'md:bg-neo-black md:text-white md:border-white/20'
+                  : 'md:bg-neo-green md:text-neo-black md:border-black/20'
+              }`;
+
+              const tagClass = `${
+                mobileDark ? 'bg-neo-green text-black' : 'bg-black text-white'
+              } ${desktopDark ? 'md:bg-neo-green md:text-black' : 'md:bg-black md:text-white'}`;
+
+              return (
+            <Motion.article
+              layoutId={`project-card-${idx}`}
+              layout
+              transition={{ layout: { duration: 0.58, ease: [0.16, 1, 0.3, 1] }, opacity: { duration: 0.25 } }}
+              className={`${toneClass} mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-5xl flex-col overflow-hidden rounded-[2rem] border p-6 md:h-[calc(100vh-3.5rem)]`}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-white/82 px-5 py-4 backdrop-blur-xl md:px-7">
+              <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-current/20 bg-inherit/95 pb-4 backdrop-blur-xl">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-black/55">Project Details</p>
-                  <h3 className="mt-1 text-xl font-bold">{projects[activeProject].title}</h3>
+                  <p className={`mb-2 inline-block rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-widest ${tagClass}`}>
+                    {project.tag}
+                  </p>
+                  <h3 className="text-3xl font-bold md:text-4xl">{project.title}</h3>
                 </div>
-                <button onClick={() => setProjectModalOpen(false)} className="grid h-9 w-9 place-items-center rounded-xl border border-black/20">
-                  <X size={18} />
+                <button
+                  onClick={closeProjectExpand}
+                  className="inline-flex items-center gap-2 rounded-xl border border-current/30 px-3 py-2 text-xs font-semibold"
+                >
+                  <X size={14} /> Close
                 </button>
               </div>
 
-              <div className="overflow-y-auto px-5 py-5 md:px-7 md:py-6">
-                <p className="mb-2 inline-block rounded-md bg-neo-green px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
-                  {projects[activeProject].tag}
-                </p>
-                <p className="mt-2 max-w-3xl text-sm leading-relaxed text-black/75 md:text-base">{projects[activeProject].summary}</p>
+              <div className="mt-4 overflow-y-auto pr-1">
+                <p className="mb-5 text-sm leading-relaxed opacity-90">{project.summary}</p>
 
-                <div className="mt-5 grid gap-3 md:grid-cols-3">
-                  <div className="rounded-xl border border-black/12 bg-white/70 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-black/60">Scope</p>
-                    <p className="mt-1 text-sm text-black/80">End-to-end full stack implementation with production-style architecture.</p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <div className="rounded-2xl border border-current/20 bg-white/15 p-4 backdrop-blur-sm">
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-70">Problem</p>
+                    <p className="mt-2 text-sm opacity-95">{project.problem}</p>
                   </div>
-                  <div className="rounded-xl border border-black/12 bg-white/70 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-black/60">Execution</p>
-                    <p className="mt-1 text-sm text-black/80">UI engineering, API design, data modeling, and interaction refinement.</p>
+                  <div className="rounded-2xl border border-current/20 bg-white/15 p-4 backdrop-blur-sm">
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-70">Approach</p>
+                    <p className="mt-2 text-sm opacity-95">{project.approach}</p>
                   </div>
-                  <div className="rounded-xl border border-black/12 bg-white/70 p-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-black/60">Outcome</p>
-                    <p className="mt-1 text-sm text-black/80">Improved usability, clearer workflows, and stronger performance behavior.</p>
+                  <div className="rounded-2xl border border-current/20 bg-white/15 p-4 backdrop-blur-sm md:col-span-2">
+                    <p className="text-xs font-bold uppercase tracking-widest opacity-70">Architecture</p>
+                    <p className="mt-2 text-sm opacity-95">{project.architecture}</p>
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-2xl border border-black/12 bg-white/70 p-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-black/60">Problem</p>
-                    <p className="mt-2 text-sm text-black/80">{projects[activeProject].problem}</p>
-                  </div>
-                  <div className="rounded-2xl border border-black/12 bg-white/70 p-4">
-                    <p className="text-xs font-bold uppercase tracking-widest text-black/60">Approach</p>
-                    <p className="mt-2 text-sm text-black/80">{projects[activeProject].approach}</p>
-                  </div>
-                  <div className="rounded-2xl border border-black/12 bg-white/70 p-4 md:col-span-2">
-                    <p className="text-xs font-bold uppercase tracking-widest text-black/60">Architecture</p>
-                    <p className="mt-2 text-sm text-black/80">{projects[activeProject].architecture}</p>
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-widest text-black/60">Tech Stack</p>
+                <div className="mt-5">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-widest opacity-70">Tech Stack</p>
                   <div className="flex flex-wrap gap-2">
-                    {projects[activeProject].stack.map((item) => (
-                      <span key={item} className="rounded-full border border-neo-black px-3 py-1 text-xs font-semibold md:text-sm">{item}</span>
+                    {project.stack.map((item) => (
+                      <span key={item} className="rounded-full border border-current/35 px-3 py-1 text-xs font-semibold">
+                        {item}
+                      </span>
                     ))}
                   </div>
                 </div>
 
-                <div className="mt-6">
-                  <p className="mb-2 text-xs font-bold uppercase tracking-widest text-black/60">Key Features</p>
-                  <ul className="space-y-1 text-sm text-black/80 md:text-base">
-                    {projects[activeProject].features.map((item) => (
-                      <li key={item}>- {item}</li>
+                <div className="mt-5">
+                  <p className="mb-2 text-xs font-bold uppercase tracking-widest opacity-70">Key Features</p>
+                  <ul className="grid gap-2 text-sm opacity-95 md:grid-cols-2">
+                    {project.features.map((item) => (
+                      <li key={item} className="rounded-xl border border-current/20 bg-white/15 px-3 py-2 backdrop-blur-sm">{item}</li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-black/12 bg-white/70 p-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-black/60">Engineering Decisions</p>
-                  <p className="mt-2 text-sm text-black/80">
-                    The implementation focused on modular components, low-coupling data contracts, and interaction flows that keep response feedback immediate. This made iteration easier while preserving maintainability across new feature additions.
-                  </p>
+                <div className="mt-5 rounded-2xl border border-current/20 bg-white/15 p-4 backdrop-blur-sm">
+                  <p className="text-xs font-bold uppercase tracking-widest opacity-70">Impact</p>
+                  <p className="mt-2 text-sm opacity-95">{project.impact}</p>
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-black/12 bg-white/70 p-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-black/60">Challenges and Resolution</p>
-                  <p className="mt-2 text-sm text-black/80">
-                    Main challenges included balancing UI clarity with high information density and keeping API responses efficient for filtered states. The solution combined component simplification, better visual hierarchy, and lean backend payload strategy.
-                  </p>
-                </div>
-
-                <div className="mt-6 rounded-2xl border border-black/12 bg-white/70 p-4">
-                  <p className="text-xs font-bold uppercase tracking-widest text-black/60">Impact</p>
-                  <p className="mt-2 text-sm text-black/80">{projects[activeProject].impact}</p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a
+                    href={project.github}
+                    className="inline-flex items-center gap-2 rounded-full border border-current/45 px-4 py-2 text-xs font-semibold hover:bg-black hover:text-white"
+                  >
+                    <Github size={14} /> Code
+                  </a>
+                  <a
+                    href={project.live}
+                    className="inline-flex items-center gap-2 rounded-full bg-neo-green px-4 py-2 text-xs font-semibold text-black hover:bg-[#a8ea59]"
+                  >
+                    <ExternalLink size={14} /> Live Demo
+                  </a>
                 </div>
               </div>
-
-              <div className="sticky bottom-0 flex flex-wrap gap-3 border-t border-black/10 bg-white/85 px-5 py-4 backdrop-blur-xl md:px-7">
-                <a href={projects[activeProject].github} className="inline-flex items-center gap-2 rounded-full border border-neo-black px-4 py-2 text-xs font-semibold hover:bg-black hover:text-white">
-                  <Github size={14} /> Code
-                </a>
-                <a href={projects[activeProject].live} className="inline-flex items-center gap-2 rounded-full bg-neo-green px-4 py-2 text-xs font-semibold text-black hover:bg-[#a8ea59]">
-                  <ExternalLink size={14} /> Live Demo
-                </a>
-              </div>
-            </motion.article>
-          </motion.div>
+            </Motion.article>
+              );
+            })()}
+          </Motion.div>
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {blogPageOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="dock-overlay fixed inset-0 z-[95] p-3 md:p-8"
-            onClick={() => setBlogPageOpen(false)}
-          >
-            <motion.article
-              initial={{ opacity: 0, y: 30, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              transition={{ duration: 0.46, ease: [0.16, 1, 0.3, 1] }}
-              className="dock-glass mx-auto flex h-[calc(100vh-1.5rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="sticky top-0 z-10 flex items-center justify-between border-b border-black/10 bg-white/82 px-5 py-4 backdrop-blur-xl md:px-7">
-                <button
-                  onClick={() => setBlogPageOpen(false)}
-                  className="inline-flex items-center gap-2 rounded-xl border border-black/20 px-3 py-2 text-xs font-semibold"
-                >
-                  <ArrowLeft size={14} /> Back
-                </button>
-                <p className="text-xs font-bold uppercase tracking-widest text-black/60">Individual Blog Page</p>
-              </div>
-
-              <div className="overflow-y-auto px-5 py-6 md:px-8">
-                <p className="mb-3 inline-block rounded-md bg-neo-green px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-black">
-                  {blogs[activeBlog].category}
-                </p>
-                <h2 className="text-3xl font-bold leading-tight md:text-4xl">{blogs[activeBlog].title}</h2>
-                <p className="mt-2 text-sm font-semibold text-black/60">{blogs[activeBlog].read}</p>
-
-                <div className="mt-6 space-y-5">
-                  {getBlogContent(blogs[activeBlog]).map((paragraph) => (
-                    <p key={paragraph} className="text-[15px] leading-relaxed text-black/80 md:text-base">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            </motion.article>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </LayoutGroup>
     </div>
   );
 };
