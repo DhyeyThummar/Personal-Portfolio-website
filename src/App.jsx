@@ -973,6 +973,20 @@ const App = () => {
                     {project.tag}
                   </p>
                   <h3 className="text-3xl font-bold md:text-4xl">{project.title}</h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a
+                      href={project.github}
+                      className="inline-flex items-center gap-2 rounded-full border border-current/45 px-4 py-2 text-xs font-semibold hover:bg-black hover:text-white"
+                    >
+                      <Github size={14} /> Code
+                    </a>
+                    <a
+                      href={project.live}
+                      className="inline-flex items-center gap-2 rounded-full bg-neo-green px-4 py-2 text-xs font-semibold text-black hover:bg-[#a8ea59]"
+                    >
+                      <ExternalLink size={14} /> Live Demo
+                    </a>
+                  </div>
                 </div>
                 <button
                   onClick={closeProjectExpand}
@@ -1026,21 +1040,6 @@ const App = () => {
                 <div className="mt-5 rounded-2xl border border-current/20 bg-white/15 p-4 backdrop-blur-sm">
                   <p className="text-xs font-bold uppercase tracking-widest opacity-70">Impact</p>
                   <p className="mt-2 text-sm opacity-95">{project.impact}</p>
-                </div>
-
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <a
-                    href={project.github}
-                    className="inline-flex items-center gap-2 rounded-full border border-current/45 px-4 py-2 text-xs font-semibold hover:bg-black hover:text-white"
-                  >
-                    <Github size={14} /> Code
-                  </a>
-                  <a
-                    href={project.live}
-                    className="inline-flex items-center gap-2 rounded-full bg-neo-green px-4 py-2 text-xs font-semibold text-black hover:bg-[#a8ea59]"
-                  >
-                    <ExternalLink size={14} /> Live Demo
-                  </a>
                 </div>
               </div>
             </Motion.article>
